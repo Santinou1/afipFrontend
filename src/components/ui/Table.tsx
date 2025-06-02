@@ -61,7 +61,7 @@ function Table<T>({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.length === 0 ? (
+          {!data || data.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}

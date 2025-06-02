@@ -47,7 +47,7 @@ const Dashboard = () => {
         // Fetch recent invoices
         const response = await invoiceApi.getInvoices(1, 5);
         
-        if (response.success) {
+        if (response.success && response.data && response.data.invoices) {
           setRecentInvoices(response.data.invoices);
           
           // Calculate summary data from the response
@@ -61,7 +61,7 @@ const Dashboard = () => {
           );
           
           setSummary({
-            totalInvoicesThisMonth: response.data.pagination.total,
+            totalInvoicesThisMonth: response.data.pagination?.total || 0,
             totalAmountThisMonth: totalAmount,
             invoicesByType: {
               A: typeACounts,
@@ -88,7 +88,14 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const columns = [
+  // Define the Column type to match the Table component's expectations
+  type Column<T> = {
+    header: string;
+    accessor: keyof T | ((item: T) => React.ReactNode);
+    className?: string;
+  };
+
+  const columns: Column<Invoice>[] = [
     {
       header: 'Tipo',
       accessor: (invoice: Invoice) => (
@@ -103,11 +110,11 @@ const Dashboard = () => {
     },
     {
       header: 'Fecha',
-      accessor: 'fecha',
+      accessor: 'fecha' as keyof Invoice,
     },
     {
       header: 'CAE',
-      accessor: 'cae',
+      accessor: 'cae' as keyof Invoice,
     },
     {
       header: 'Importe',

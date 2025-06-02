@@ -60,8 +60,11 @@ const InvoicesList = () => {
   };
 
   useEffect(() => {
-    fetchInvoices(pagination.page, pagination.limit, filters);
-  }, [pagination.page, pagination.limit]);
+    // Use default values if pagination properties are undefined
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    fetchInvoices(page, limit, filters);
+  }, [pagination?.page, pagination?.limit]);
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -74,7 +77,7 @@ const InvoicesList = () => {
 
   const applyFilters = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchInvoices(1, pagination.limit, filters);
+    fetchInvoices(1, pagination?.limit || 10, filters);
   };
 
   const resetFilters = () => {
@@ -83,14 +86,21 @@ const InvoicesList = () => {
       puntoVenta: ''
     });
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchInvoices(1, pagination.limit, {});
+    fetchInvoices(1, pagination?.limit || 10, {});
   };
 
   const handleRowClick = (invoice: Invoice) => {
     navigate(`/invoices/${invoice.tipo}/${invoice.punto_venta}/${invoice.numero}`);
   };
 
-  const columns = [
+  // Define the Column type to match the Table component's expectations
+  type Column<T> = {
+    header: string;
+    accessor: keyof T | ((item: T) => React.ReactNode);
+    className?: string;
+  };
+
+  const columns: Column<Invoice>[] = [
     {
       header: 'Tipo',
       accessor: (invoice: Invoice) => {
@@ -116,11 +126,11 @@ const InvoicesList = () => {
     },
     {
       header: 'Fecha',
-      accessor: 'fecha',
+      accessor: 'fecha' as keyof Invoice,
     },
     {
       header: 'CAE',
-      accessor: 'cae',
+      accessor: 'cae' as keyof Invoice,
     },
     {
       header: 'Importe Neto',
@@ -248,8 +258,8 @@ const InvoicesList = () => {
         
         <div className="mt-4">
           <Pagination
-            currentPage={pagination.page}
-            totalPages={pagination.pages}
+            currentPage={pagination?.page || 1}
+            totalPages={pagination?.pages || 1}
             onPageChange={handlePageChange}
           />
         </div>
