@@ -13,9 +13,12 @@ interface Invoice {
   numero: number;
   fecha: string;
   cae: string;
-  importe_total: number;
-  importe_neto: number;
-  importe_iva: number;
+  importe_total: string;
+  importe_neto: string;
+  importe_iva: string;
+  doc_nro?: number;
+  doc_tipo?: number;
+  fecha_creacion?: string;
 }
 
 interface DashboardSummary {
@@ -47,21 +50,21 @@ const Dashboard = () => {
         // Fetch recent invoices
         const response = await invoiceApi.getInvoices(1, 5);
         
-        if (response.success && response.data && response.data.invoices) {
-          setRecentInvoices(response.data.invoices);
+        if (response.success && response.data) {
+          setRecentInvoices(response.data);
           
           // Calculate summary data from the response
-          const typeACounts = response.data.invoices.filter((inv: Invoice) => inv.tipo === 'A').length;
-          const typeBCounts = response.data.invoices.filter((inv: Invoice) => inv.tipo === 'B').length;
-          const typeCCounts = response.data.invoices.filter((inv: Invoice) => inv.tipo === 'C').length;
+          const typeACounts = response.data.filter((inv: Invoice) => inv.tipo === 'A').length;
+          const typeBCounts = response.data.filter((inv: Invoice) => inv.tipo === 'B').length;
+          const typeCCounts = response.data.filter((inv: Invoice) => inv.tipo === 'C').length;
           
-          const totalAmount = response.data.invoices.reduce(
-            (sum: number, inv: Invoice) => sum + inv.importe_total, 
+          const totalAmount = response.data.reduce(
+            (sum: number, inv: Invoice) => sum + Number(inv.importe_total), 
             0
           );
           
           setSummary({
-            totalInvoicesThisMonth: response.data.pagination?.total || 0,
+            totalInvoicesThisMonth: response.pagination?.totalItems || 0,
             totalAmountThisMonth: totalAmount,
             invoicesByType: {
               A: typeACounts,
@@ -120,7 +123,7 @@ const Dashboard = () => {
       header: 'Importe',
       accessor: (invoice: Invoice) => (
         <span className="font-medium">
-          ${invoice.importe_total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+          ${Number(invoice.importe_total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
         </span>
       ),
     },

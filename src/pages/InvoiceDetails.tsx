@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
-import { invoiceApi } from '../services/api';
+import { invoiceApi, creditNoteApi } from '../services/api';
 import { Download, RefreshCw, ArrowLeft, Printer } from 'lucide-react';
 
 interface InvoiceDetail {
@@ -40,6 +40,7 @@ const InvoiceDetails = () => {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreatingCreditNote, setIsCreatingCreditNote] = useState(false);
 
   useEffect(() => {
     const fetchInvoiceDetails = async () => {
@@ -53,8 +54,15 @@ const InvoiceDetails = () => {
         setIsLoading(true);
         const response = await invoiceApi.getInvoiceDetails(type, parseInt(puntoVenta), parseInt(numero));
         
+        console.log('Respuesta de detalles de factura:', response);
+        
         if (response.success) {
           setInvoice(response.data);
+          // Verificar que el CAE esté presente
+          if (!response.data.cae && !response.data.datos_completos?.CAE) {
+            console.error('La factura no tiene CAE:', response.data);
+            setError('La factura no tiene un CAE válido');
+          }
         } else {
           setError('No se pudo cargar los detalles de la factura');
         }
@@ -103,9 +111,37 @@ const InvoiceDetails = () => {
     }
   };
   
-  const handleCreateCreditNote = () => {
-    if (invoice) {
-      navigate(`/create-credit-note/${invoice.cae}`);
+  const handleCreateCreditNote = async () => {
+    if (!invoice || !invoice.cae) return;
+
+    try {
+      setIsCreatingCreditNote(true);
+      console.log('Creando nota de crédito con CAE:', invoice.cae);
+      
+      const response = await creditNoteApi.createCreditNoteFromCae(invoice.cae);
+      console.log('Respuesta de creación de nota de crédito:', response);
+
+      if (response.success) {
+        // Redirigir a una página de confirmación con los detalles
+        navigate('/credit-note-confirmation', {
+          state: {
+            originalInvoice: {
+              tipo: invoice.tipo,
+              puntoVenta: invoice.punto_venta,
+              numero: invoice.numero,
+              cae: invoice.cae
+            },
+            creditNote: response.data // Pasamos toda la respuesta que incluye creditNote, qrData, etc.
+          }
+        });
+      } else {
+        setError(response.message || 'Error al crear la nota de crédito');
+      }
+    } catch (error) {
+      console.error('Error al crear nota de crédito:', error);
+      setError('Error al crear la nota de crédito');
+    } finally {
+      setIsCreatingCreditNote(false);
     }
   };
 
@@ -200,8 +236,10 @@ const InvoiceDetails = () => {
               variant="primary"
               leftIcon={<RefreshCw size={16} />}
               onClick={handleCreateCreditNote}
+              isLoading={isCreatingCreditNote}
+              disabled={isCreatingCreditNote}
             >
-              Crear Nota de Crédito
+              {isCreatingCreditNote ? 'Creando nota de crédito...' : 'Crear Nota de Crédito'}
             </Button>
           )}
         </div>

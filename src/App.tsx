@@ -7,6 +7,7 @@ import CreateInvoice from './pages/CreateInvoice';
 import CreateCreditNote from './pages/CreateCreditNote';
 import InvoiceDetails from './pages/InvoiceDetails';
 import TaxpayerLookup from './pages/TaxpayerLookup';
+import CreditNoteConfirmation from './pages/CreditNoteConfirmation';
 import { AppProvider } from './context/AppContext';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
               <Route path="create-credit-note" element={<CreateCreditNote />} />
               <Route path="create-credit-note/:cae" element={<CreateCreditNote />} />
               <Route path="taxpayer-lookup" element={<TaxpayerLookup />} />
+              <Route path="credit-note-confirmation" element={<CreditNoteConfirmation />} />
             </Route>
           </Routes>
         </AnimatePresence>

@@ -6,32 +6,36 @@ import Alert from '../components/ui/Alert';
 import { taxpayerApi } from '../services/api';
 import { Search, RefreshCw } from 'lucide-react';
 
+interface Domicilio {
+  calle: string;
+  codigoPostal: string;
+  descripcionProvincia: string;
+  direccion: string;
+  estadoDomicilio: string;
+  idProvincia: number;
+  localidad: string;
+  numero: number;
+  oficinaDptoLocal?: string;
+  piso?: string;
+  tipoDomicilio: string;
+}
+
 interface Taxpayer {
-  idPersona: string;
+  apellido: string;
   nombre: string;
-  tipoPersona: string;
-  tipoClave: string;
+  descripcionActividadPrincipal: string;
+  domicilio: Domicilio[];
   estadoClave: string;
-  direccion?: string;
-  localidad?: string;
-  codPostal?: string;
-  provincia?: string;
-  impuestos?: { 
-    idImpuesto: number; 
-    descripcionImpuesto: string;
-  }[];
-  actividades?: {
-    idActividad: number;
-    descripcionActividad: string;
-  }[];
-  categoriaAutonomo?: string;
-  categoriaMonotributo?: string;
-  domicilioFiscal?: {
-    codPostal: string;
-    direccion: string;
-    localidad: string;
-    provincia: string;
-  };
+  fechaFallecimiento?: string;
+  fechaNacimiento?: string;
+  idActividadPrincipal: number;
+  idPersona: number;
+  mesCierre: number;
+  numeroDocumento: string;
+  periodoActividadPrincipal: number;
+  tipoClave: string;
+  tipoDocumento: string;
+  tipoPersona: string;
 }
 
 const TaxpayerLookup = () => {
@@ -59,15 +63,36 @@ const TaxpayerLookup = () => {
       setError(null);
       setTaxpayer(null);
       
+      console.log('Buscando contribuyente con CUIT:', cuitInput.trim());
       const response = await taxpayerApi.getTaxpayer(cuitInput.trim());
       
+      console.log('Respuesta completa de la API:', response);
+      console.log('Tipo de response.data:', typeof response.data);
+      console.log('Contenido de response.data:', response.data);
+      
       if (response.success) {
+        // Validar que la respuesta tenga la estructura esperada
+        if (!response.data) {
+          console.log('Error: response.data es null o undefined');
+          setError('La respuesta no tiene el formato esperado (data es null)');
+          return;
+        }
+
+        console.log('Campos disponibles en response.data:', Object.keys(response.data));
+        
+        // Verificar campos específicos
+        console.log('idPersona:', response.data.idPersona);
+        console.log('nombre:', response.data.nombre);
+        console.log('apellido:', response.data.apellido);
+        console.log('domicilio:', response.data.domicilio);
+
         setTaxpayer(response.data);
       } else {
+        console.log('La respuesta no fue exitosa:', response);
         setError('No se encontró el contribuyente');
       }
     } catch (error) {
-      console.error('Error searching taxpayer:', error);
+      console.error('Error completo al buscar contribuyente:', error);
       setError('Error al buscar el contribuyente');
     } finally {
       setIsSearching(false);
@@ -98,9 +123,18 @@ const TaxpayerLookup = () => {
       }
       
       const response = await taxpayerApi.getMultipleTaxpayers(cuits);
+      console.log('Multiple API Response:', response);
       
-      if (response.success) {
-        setMultipleTaxpayers(response.data);
+      if (response.success && Array.isArray(response.data)) {
+        const successful = response.data.filter((item: any) => item && item.idPersona);
+        const failed = cuits
+          .filter(cuit => !response.data.find((item: any) => item && item.idPersona.toString() === cuit))
+          .map(taxId => ({
+            taxId,
+            error: 'No se encontró el contribuyente'
+          }));
+        
+        setMultipleTaxpayers({ successful, failed });
       } else {
         setMultipleError('Error al consultar los contribuyentes');
       }
@@ -112,115 +146,118 @@ const TaxpayerLookup = () => {
     }
   };
 
-  const renderTaxpayerDetails = (taxpayer: Taxpayer) => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-3">Información General</h3>
-        <div className="bg-gray-50 p-4 rounded-md">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Nombre / Razón Social:</p>
-              <p className="font-medium">{taxpayer.nombre}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">{taxpayer.tipoClave}:</p>
-              <p className="font-medium">{taxpayer.idPersona}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Tipo de Persona:</p>
-              <p className="font-medium">{taxpayer.tipoPersona}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Estado:</p>
-              <p className="font-medium">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  taxpayer.estadoClave === 'ACTIVO' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {taxpayer.estadoClave}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {taxpayer.domicilioFiscal && (
+  const renderTaxpayerDetails = (taxpayer: Taxpayer) => {
+    console.log('Renderizando detalles del contribuyente:', taxpayer);
+    
+    if (!taxpayer) {
+      console.log('Error: taxpayer es null o undefined');
+      return (
+        <Alert
+          type="error"
+          title="Error al mostrar los datos del contribuyente"
+          message="La estructura de datos no es válida (taxpayer es null)"
+        />
+      );
+    }
+
+    // Verificar campos críticos
+    console.log('Verificando campos críticos:');
+    console.log('- nombre:', taxpayer.nombre);
+    console.log('- apellido:', taxpayer.apellido);
+    console.log('- idPersona:', taxpayer.idPersona);
+    console.log('- domicilio:', taxpayer.domicilio);
+
+    const domicilioFiscal = taxpayer.domicilio?.find(d => d.tipoDomicilio === 'FISCAL');
+    console.log('Domicilio fiscal encontrado:', domicilioFiscal);
+
+    return (
+      <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Domicilio Fiscal</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Información General</h3>
           <div className="bg-gray-50 p-4 rounded-md">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">Dirección:</p>
-                <p className="font-medium">{taxpayer.domicilioFiscal.direccion}</p>
+                <p className="text-sm text-gray-500">Nombre / Razón Social:</p>
+                <p className="font-medium">
+                  {`${taxpayer.nombre || ''} ${taxpayer.apellido || ''}`}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Localidad:</p>
-                <p className="font-medium">{taxpayer.domicilioFiscal.localidad}</p>
+                <p className="text-sm text-gray-500">{taxpayer.tipoClave}:</p>
+                <p className="font-medium">{taxpayer.idPersona}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Código Postal:</p>
-                <p className="font-medium">{taxpayer.domicilioFiscal.codPostal}</p>
+                <p className="text-sm text-gray-500">Tipo de Persona:</p>
+                <p className="font-medium">{taxpayer.tipoPersona}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Provincia:</p>
-                <p className="font-medium">{taxpayer.domicilioFiscal.provincia}</p>
+                <p className="text-sm text-gray-500">Estado:</p>
+                <p className="font-medium">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    taxpayer.estadoClave === 'ACTIVO' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {taxpayer.estadoClave}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Documento:</p>
+                <p className="font-medium">{taxpayer.tipoDocumento} {taxpayer.numeroDocumento}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Mes de Cierre:</p>
+                <p className="font-medium">{taxpayer.mesCierre}</p>
               </div>
             </div>
           </div>
         </div>
-      )}
-      
-      {taxpayer.impuestos && taxpayer.impuestos.length > 0 && (
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Impuestos</h3>
-          <div className="bg-gray-50 p-4 rounded-md">
-            <ul className="space-y-2">
-              {taxpayer.impuestos.map((impuesto, index) => (
-                <li key={index} className="flex justify-between">
-                  <span className="text-gray-700">{impuesto.descripcionImpuesto}</span>
-                  <span className="text-gray-500">({impuesto.idImpuesto})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-      
-      {taxpayer.actividades && taxpayer.actividades.length > 0 && (
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Actividades Económicas</h3>
-          <div className="bg-gray-50 p-4 rounded-md">
-            <ul className="space-y-2">
-              {taxpayer.actividades.map((actividad, index) => (
-                <li key={index} className="flex justify-between">
-                  <span className="text-gray-700">{actividad.descripcionActividad}</span>
-                  <span className="text-gray-500">({actividad.idActividad})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {taxpayer.categoriaAutonomo && (
-          <div className="bg-blue-50 p-4 rounded-md">
-            <p className="text-sm font-medium text-blue-800">Categoría Autónomo</p>
-            <p className="text-lg font-semibold text-blue-900">{taxpayer.categoriaAutonomo}</p>
+
+        {domicilioFiscal && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Domicilio Fiscal</h3>
+            <div className="bg-gray-50 p-4 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Dirección:</p>
+                  <p className="font-medium">{domicilioFiscal.direccion}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Localidad:</p>
+                  <p className="font-medium">{domicilioFiscal.localidad}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Código Postal:</p>
+                  <p className="font-medium">{domicilioFiscal.codigoPostal}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Provincia:</p>
+                  <p className="font-medium">{domicilioFiscal.descripcionProvincia}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
-        
-        {taxpayer.categoriaMonotributo && (
-          <div className="bg-green-50 p-4 rounded-md">
-            <p className="text-sm font-medium text-green-800">Categoría Monotributo</p>
-            <p className="text-lg font-semibold text-green-900">{taxpayer.categoriaMonotributo}</p>
+
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Actividad Principal</h3>
+          <div className="bg-gray-50 p-4 rounded-md">
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm text-gray-500">Descripción:</p>
+                <p className="font-medium">{taxpayer.descripcionActividadPrincipal}</p>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Código: {taxpayer.idActividadPrincipal}</span>
+                <span className="text-sm text-gray-500">Período: {taxpayer.periodoActividadPrincipal}</span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMultipleTaxpayers = () => {
     if (!multipleTaxpayers) return null;
@@ -229,14 +266,18 @@ const TaxpayerLookup = () => {
       <div className="space-y-6">
         {multipleTaxpayers.successful.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Contribuyentes Encontrados ({multipleTaxpayers.successful.length})</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">
+              Contribuyentes Encontrados ({multipleTaxpayers.successful.length})
+            </h3>
             <div className="space-y-4">
               {multipleTaxpayers.successful.map((taxpayer, index) => (
                 <Card key={index}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Nombre / Razón Social:</p>
-                      <p className="font-medium">{taxpayer.nombre}</p>
+                      <p className="font-medium">
+                        {`${taxpayer.nombre || ''} ${taxpayer.apellido || ''}`}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">{taxpayer.tipoClave}:</p>
@@ -260,13 +301,13 @@ const TaxpayerLookup = () => {
                     </div>
                   </div>
                   
-                  {taxpayer.impuestos && taxpayer.impuestos.length > 0 && (
+                  {taxpayer.domicilio && taxpayer.domicilio.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm text-gray-500 mb-1">Impuestos:</p>
+                      <p className="text-sm text-gray-500 mb-1">Domicilio:</p>
                       <div className="flex flex-wrap gap-2">
-                        {taxpayer.impuestos.map((impuesto, idx) => (
+                        {taxpayer.domicilio.map((d, idx) => (
                           <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {impuesto.descripcionImpuesto}
+                            {d.direccion}
                           </span>
                         ))}
                       </div>
@@ -280,7 +321,9 @@ const TaxpayerLookup = () => {
         
         {multipleTaxpayers.failed.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Contribuyentes No Encontrados ({multipleTaxpayers.failed.length})</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">
+              Contribuyentes No Encontrados ({multipleTaxpayers.failed.length})
+            </h3>
             <div className="bg-red-50 p-4 rounded-md">
               <ul className="space-y-2">
                 {multipleTaxpayers.failed.map((failed, index) => (
@@ -350,7 +393,7 @@ const TaxpayerLookup = () => {
                     variant="primary"
                     onClick={handleSearchTaxpayer}
                     isLoading={isSearching}
-                    leftIcon={<Search size={16} />}
+                    leftIcon={<Search className="w-4 h-4" />}
                   >
                     Consultar
                   </Button>
@@ -388,7 +431,7 @@ const TaxpayerLookup = () => {
                   variant="primary"
                   onClick={handleSearchMultiple}
                   isLoading={isSearchingMultiple}
-                  leftIcon={<RefreshCw size={16} />}
+                  leftIcon={<RefreshCw className="w-4 h-4" />}
                 >
                   Consultar Todos
                 </Button>
