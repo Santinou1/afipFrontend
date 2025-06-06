@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, FilePlus, RefreshCw, UserCheck, X } from 'lucide-react';
+import { Home, FileText, FilePlus, RefreshCw, UserCheck, Users, X } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     { name: 'Crear Factura', path: '/create-invoice', icon: <FilePlus size={20} /> },
     { name: 'Crear Nota de Crédito', path: '/create-credit-note', icon: <RefreshCw size={20} /> },
     { name: 'Consultar Contribuyente', path: '/taxpayer-lookup', icon: <UserCheck size={20} /> },
+    { name: 'Contribuyentes', path: '/taxpayers', icon: <Users size={20} /> },
   ];
 
   return (

@@ -114,6 +114,11 @@ export const creditNoteApi = {
 
 // Taxpayer Endpoints
 export const taxpayerApi = {
+  // Get all taxpayers
+  getAllTaxpayers: () => {
+    return apiRequest('/taxpayers');
+  },
+
   // Get taxpayer information by CUIT
   getTaxpayer: (cuit: string) => {
     return apiRequest(`/taxpayers/${cuit}`);
