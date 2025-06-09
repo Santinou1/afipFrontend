@@ -1,5 +1,15 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 
+interface InvoiceData {
+  DocTipo: number;
+  DocNro: number;
+  ImpNeto: number;
+  ImpIVA?: number;
+  Concepto: number;
+  PtoVta: number;
+  CondicionIVAReceptorId: number;
+}
+
 // Helper function for API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -32,7 +42,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
 // Invoice Endpoints
 export const invoiceApi = {
   // Generate Invoice Type A
-  createInvoiceA: (invoiceData: any) => {
+  createInvoiceA: (invoiceData: InvoiceData) => {
     return apiRequest('/invoices/a', {
       method: 'POST',
       body: JSON.stringify(invoiceData),
@@ -40,7 +50,7 @@ export const invoiceApi = {
   },
   
   // Generate Invoice Type B
-  createInvoiceB: (invoiceData: any) => {
+  createInvoiceB: (invoiceData: InvoiceData) => {
     return apiRequest('/invoices/b', {
       method: 'POST',
       body: JSON.stringify(invoiceData),
@@ -48,7 +58,7 @@ export const invoiceApi = {
   },
   
   // Generate Invoice Type C
-  createInvoiceC: (invoiceData: any) => {
+  createInvoiceC: (invoiceData: InvoiceData) => {
     return apiRequest('/invoices/c', {
       method: 'POST',
       body: JSON.stringify(invoiceData),

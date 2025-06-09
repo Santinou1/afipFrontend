@@ -16,6 +16,7 @@ interface InvoiceFormData {
   ImpIVA: string;
   Concepto: number;
   PtoVta: string;
+  CondicionIVAReceptorId: number;
 }
 
 interface Taxpayer {
@@ -36,6 +37,7 @@ const CreateInvoice = () => {
     ImpIVA: '',
     Concepto: 1, // Products by default
     PtoVta: '1',
+    CondicionIVAReceptorId: 5, // Consumidor Final by default
   });
   const [taxpayer, setTaxpayer] = useState<Taxpayer | null>(null);
   const [isSearchingTaxpayer, setIsSearchingTaxpayer] = useState(false);
@@ -98,6 +100,7 @@ const CreateInvoice = () => {
     }
     
     if (!formData.PtoVta) errors.PtoVta = 'El punto de venta es requerido';
+    if (!formData.CondicionIVAReceptorId) errors.CondicionIVAReceptorId = 'La condición frente al IVA es requerida';
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -151,6 +154,7 @@ const CreateInvoice = () => {
           ImpIVA: '',
           Concepto: 1,
           PtoVta: '1',
+          CondicionIVAReceptorId: 5,
         });
         setTaxpayer(null);
         
@@ -167,6 +171,32 @@ const CreateInvoice = () => {
       setErrorMessage(error.message || 'Error al generar la factura');
     } finally {
       setIsCreatingInvoice(false);
+    }
+  };
+
+  const getCondicionIVAOptions = (type: string) => {
+    // Define las opciones según el tipo de factura
+    if (type === 'a') {
+      return [
+        { value: '1', label: 'IVA Responsable Inscripto' },
+        { value: '6', label: 'Responsable Monotributo' },
+        { value: '13', label: 'Monotributista Social' },
+        { value: '16', label: 'Monotributo Trabajador Independiente Promovido' }
+      ];
+    } else {
+      // Para facturas B y C
+      return [
+        { value: '4', label: 'IVA Sujeto Exento' },
+        { value: '5', label: 'Consumidor Final' },
+        { value: '6', label: 'Responsable Monotributo' },
+        { value: '7', label: 'Sujeto No Categorizado' },
+        { value: '8', label: 'Proveedor del Exterior' },
+        { value: '9', label: 'Cliente del Exterior' },
+        { value: '10', label: 'IVA Liberado – Ley N° 19.640' },
+        { value: '13', label: 'Monotributista Social' },
+        { value: '15', label: 'IVA No Alcanzado' },
+        { value: '16', label: 'Monotributo Trabajador Independiente Promovido' }
+      ];
     }
   };
 
@@ -216,6 +246,15 @@ const CreateInvoice = () => {
                     </Button>
                   </div>
                 </div>
+                
+                <Select
+                  label="Condición frente al IVA"
+                  name="CondicionIVAReceptorId"
+                  value={formData.CondicionIVAReceptorId.toString()}
+                  onChange={handleInputChange}
+                  options={getCondicionIVAOptions(type)}
+                  error={validationErrors.CondicionIVAReceptorId}
+                />
                 
                 {taxpayer && (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-md">
